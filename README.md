@@ -47,22 +47,45 @@ returns a `NewsResponse` directly — no manual JSON parsing.
 
 ## Setup
 
-1. Clone the repo.
-2. Create and activate a Python 3.12 virtual environment:
+**Requires Python 3.12+.**
 
+1. Clone the repo.
+2. Create and activate a virtual environment:
+
+   ```bash
+   # macOS / Linux
+   python3.12 -m venv .venv
+   source .venv/bin/activate
    ```
-   python -m venv .venv
-   .venv\Scripts\Activate.ps1   # Windows PowerShell
-   source .venv/bin/activate    # macOS / Linux
+
+   ```powershell
+   # Windows PowerShell — use `py -3.12` if you have multiple Python
+   # versions installed, to avoid `python` resolving to a different one.
+   py -3.12 -m venv .venv
+   .venv\Scripts\Activate.ps1
    ```
+
+   > If activation fails with *"execution of scripts is disabled on this
+   > system"*, allow signed local scripts once for your user with:
+   > `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
 
 3. Install dependencies:
 
-   ```
+   ```bash
    pip install -r requirements.txt
    ```
 
 4. Copy `.env.example` to `.env` and fill in the API keys:
+
+   ```bash
+   # macOS / Linux
+   cp .env.example .env
+   ```
+
+   ```powershell
+   # Windows PowerShell
+   Copy-Item .env.example .env
+   ```
 
    ```
    OPENROUTER_API_KEY=<your key>
@@ -73,13 +96,27 @@ returns a `NewsResponse` directly — no manual JSON parsing.
    (`https://openrouter.ai/api/v1` and `google/gemma-4-31b-it`); set them
    only if you want to override.
 
+5. (Optional) Verify your keys before starting the server:
+
+   ```bash
+   python scripts/smoke_test.py
+   ```
+
+   This pings OpenRouter and Tavily directly and exits non-zero if either
+   key is wrong — much faster than discovering the problem through a 502
+   from the running API. See [Smoke tests](#smoke-tests) for details.
+
 ## Running
 
-```
+```bash
 uvicorn app.main:app --reload
 ```
 
 Swagger UI: http://127.0.0.1:8000/docs
+
+> **Expect each `/news` request to take ~30–60 seconds.** The endpoint
+> waits for both the Tavily search and the LLM summarization to finish
+> before responding; this is the agent working, not a hang.
 
 ## Example requests
 
