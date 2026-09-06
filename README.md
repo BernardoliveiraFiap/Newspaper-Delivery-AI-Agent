@@ -1,6 +1,6 @@
 # Newspaper Delivery AI Agent
 
-A small FastAPI service that delivers a plain-language summary of the most
+A FastAPI service that delivers a plain-language summary of the most
 important news from the last 2 days, with up to 5 source links.
 
 ## Overview
@@ -198,4 +198,37 @@ parsing and the bug class that comes with it.
 caller free to construct its own client (relevant for tests and per-request
 isolation) and makes mocking trivial (`monkeypatch` the factory).
 
+## Limitations
 
+Two of these are genuine soft spots; the rest are scope.
+
+- **Summary faithfulness is unverified.** Pydantic guarantees the *shape* of
+  the response — non-empty summary, 1-5 valid URLs — but nothing checks that
+  the summary reflects the articles behind those URLs. Misattribution would
+  pass through silently. This is the obvious next piece of work, and it needs
+  an eval harness rather than another assertion.
+- **The `days=2` filter rests on kwarg passthrough.** `langchain-tavily`
+  0.2.18 forwards unknown kwargs verbatim, which is what makes the injection
+  work at all. A future version that validates kwargs would drop the time
+  window *silently* rather than raising — so the pin in `requirements.txt` is
+  load-bearing, not cosmetic.
+- **Verification is by smoke script, not by suite.** The scripts under
+  `scripts/` call the real OpenRouter and Tavily APIs, which is the point:
+  they catch credential and contract breakage that a mocked test cannot. The
+  cost is that they spend quota and cannot gate CI.
+- **Single-process and stateless by design.** No cache, no job queue, no
+  persistence — each request runs the full search-and-summarise cycle and
+  holds the connection for its 30-60 seconds. Adding a queue would change the
+  API contract, which is out of scope for a synchronous briefing endpoint.
+- **The service assumes a trusted caller.** The endpoint is unauthenticated
+  and unthrottled, so it is meant to run behind something that isn't.
+- **Categories are a closed set** — `tech`, `economics`, `politics`, or
+  general. Anything else is a 422, which is the intended behaviour rather
+  than a gap.
+
+## About
+
+A study project on agent design and structured output: what it takes for an
+LLM-backed endpoint to return a validated object instead of a blob of text,
+and where the boundary belongs between what the model decides and what the
+code enforces.
